@@ -1,0 +1,10 @@
+# python files
+.python-version
+**/.ipynb_checkpoints/**
+**/__pycache__/**
+*.ipynb
+
+# macOS 
+.DS_Store
+.AppleDouble
+.LSOverride
