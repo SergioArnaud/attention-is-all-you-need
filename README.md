@@ -7,8 +7,8 @@ from transformer.transformer import Transformer
 src = torch.randint(0, 256, (1, 1024))
 tgt = torch.randint(0, 256, (1, 1024))
 
-T = Transformer(256,412)
-ans = T(src, tgt)
+model = Transformer(256,412)
+ans = model(src, tgt)
 ```
 
 
