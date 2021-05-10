@@ -1,7 +1,8 @@
 import torch
 import torch.nn as nn
-from encoder import Encoder
-from decoder import Decoder
+from transformer.encoder import Encoder
+from transformer.decoder import Decoder
+import torch.nn.functional as F
 
 
 def get_subsequent_mask(seq):
@@ -23,7 +24,6 @@ class Transformer(nn.Module):
         d_model=512,
         attn_dropout=0.1,
         feed_forward_dropout=0.1,
-        n_positions=512,
     ):
 
         super(Transformer, self).__init__()
@@ -36,7 +36,6 @@ class Transformer(nn.Module):
             d_word_vec,
             attn_dropout,
             feed_forward_dropout,
-            n_positions,
         )
 
         self.decoder = Decoder(
@@ -47,19 +46,18 @@ class Transformer(nn.Module):
             d_word_vec,
             attn_dropout,
             feed_forward_dropout,
-            n_positions,
         )
 
         self.linear = nn.Linear(d_model, num_tokens_tgt)
 
+        for p in self.parameters():
+            if p.dim() > 1:
+                nn.init.xavier_uniform(p)
+
     def forward(self, source, target):
 
         mask = get_subsequent_mask(target)
-
         encoder_output = self.encoder(source)
-
         dec_output = self.decoder(target, encoder_output, mask)
 
-        dec_output = self.linear(dec_output)
-
-        return dec_output
+        return F.log_softmax(self.linear(dec_output), dim=-1)
