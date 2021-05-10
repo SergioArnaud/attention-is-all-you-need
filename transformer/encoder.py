@@ -1,7 +1,7 @@
 import torch.nn as nn
-from attention import MultiHeadAttention
-from util_layers import Residual, PositionwiseFeedForward, PositionalEncoding
-
+from transformer.attention import MultiHeadAttention
+from transformer.util_layers import Residual, PositionwiseFeedForward, PositionalEncoding
+import math
 
 class EncoderLayer(nn.Module):
     def __init__(self, h, d_model, attn_dropout=0.1, feed_forward_dropout=0.1):
@@ -34,14 +34,13 @@ class Encoder(nn.Module):
         d_word_vec=512,
         attn_dropout=0.1,
         feed_forward_dropout=0.1,
-        n_positions=512,
     ):
 
         super(Encoder, self).__init__()
 
         self.d_model = d_model
-        self.token_emb = nn.Embedding(num_tokens, d_word_vec)
-        self.positional_enc = PositionalEncoding(n_positions)
+        self.token_emb = nn.Embedding(num_tokens, d_word_vec) 
+        self.positional_enc = PositionalEncoding(d_word_vec)
 
         self.layers = nn.ModuleList(
             [

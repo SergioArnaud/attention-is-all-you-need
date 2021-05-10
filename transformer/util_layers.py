@@ -11,22 +11,23 @@ class PositionalEncoding(nn.Module):
 
     def _get_positional_encoding(self, n_positions):
 
-        # Get numpy arrays with positions and dimensionss
-        dimensions, positions = np.ix_(np.arange(self.d_model), np.arange(n_positions))
+        # Get numpy arrays with positions and dimensions
+        
+        positions, dimensions = np.ix_(np.arange(n_positions), np.arange(self.d_model))
 
         # Compute frequency
         positional_encoding = positions / (
-            np.power(10000, 2 * dimensions / self.d_model)
+            np.power(10000, 2 * (dimensions // 2) / self.d_model)
         )
 
         # Map frequency to sinusoidal value
         positional_encoding[:, 0::2] = np.sin(positional_encoding[:, 0::2])  # dim 2i
         positional_encoding[:, 1::2] = np.cos(positional_encoding[:, 1::2])  # dim 2i+1
 
-        return torch.tensor(positional_encoding).T.unsqueeze_(0)
+        return torch.tensor(positional_encoding).unsqueeze_(0)
 
     def forward(self, x):
-        return x + self._get_positional_encoding(x.shape[1])
+        return x + self._get_positional_encoding(x.size(1))[:, :x.size(1)]
 
 
 class PositionwiseFeedForward(nn.Module):
