@@ -73,7 +73,7 @@ class DS(Dataset):
 class TT(pl.LightningModule):
     def __init__(self):
         super().__init__()
-        self.model = Transformer(24000, 24000)
+        self.model = Transformer(25000, 25000)
 
     def forward(self, src, tgt):
         return self.model(src, tgt)
@@ -124,6 +124,6 @@ if __name__ == "__main__":
 
     model = TT()
     ds = DS()
-    train_dataloader = DataLoader(ds, batch_size=4, shuffle=True, num_workers=0)
+    train_dataloader = DataLoader(ds, batch_size=4, shuffle=True, num_workers=os.cpu_count())
 
     trainer.fit(model, train_dataloader)
