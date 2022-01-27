@@ -24,7 +24,7 @@ class AttentionHead(nn.Module):
         self.W_V = nn.Linear(d_model, d_v, bias=False)
 
         self.dropout = nn.Dropout(dropout)
-        self.temperature = d_k ** 2
+        self.temperature = d_k ** (1/2)
 
     def forward(self, Q, K, V, mask=None):
 
