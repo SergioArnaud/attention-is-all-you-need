@@ -87,7 +87,8 @@ class TT(pl.LightningModule):
         tgt_out = tgt[:, 1:]
         out = self.forward(src, tgt_in)
         loss = self.compute_loss(out, tgt_out)
-        self.log(f"train/train_loss", loss, on_step=True, on_epoch=True)
+        print(loss)
+        self.log("train/loss", loss)
         return loss
 
     def configure_optimizers(self):
@@ -105,13 +106,19 @@ def get_checkpoint_callback(save_path="model", name="model_checkpoint.ckpt"):
 
 def initialize_wandb():
     wandb.login()
-    wandb.init(project="attn", notes="Train Test")
+    wandb.init(project="attention", notes="Train Test")
 
 
 if __name__ == "__main__":
 
     initialize_wandb()
+    model = TT()
     checkpoint_callback = get_checkpoint_callback()
+
+    wandb_logger = WandbLogger()
+
+    # log gradients, parameter histogram and model topology
+    wandb_logger.watch(model, log="all")
 
     trainer = pl.Trainer(
         gpus=-1,
@@ -122,7 +129,6 @@ if __name__ == "__main__":
         max_epochs=10,
     )
 
-    model = TT()
     ds = DS()
     train_dataloader = DataLoader(ds, batch_size=4, shuffle=True, num_workers=os.cpu_count())
 
