@@ -21,7 +21,7 @@ from datasets import load_dataset
 from torch.utils.data import Dataset, DataLoader
 
 
-class Tokenizer:
+class Tok:
     def __init__(self, dataset, max_length=256, vocab_lenght=25000):
         self.dataset = dataset
         tokenizer = Tokenizer(models.BPE())
@@ -55,7 +55,7 @@ class DS(Dataset):
     def __init__(self):
         self.dataset = load_dataset("opus_books", "en-es")
         self.dataset = self.dataset["train"]
-        self.tokenizer = Tokenizer(self.dataset)
+        self.tokenizer = Tok(self.dataset).tokenizer
 
     def __len__(self):
         return self.dataset.num_rows
