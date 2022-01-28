@@ -1,5 +1,6 @@
 import torch
 from transformer.transformer import Transformer
+from optimizer import ScheduledOptim
 from torch.nn import functional as F
 from datasets import load_dataset
 
@@ -58,7 +59,7 @@ class DS(Dataset):
         self.tokenizer = Tok(self.dataset).tokenizer
 
     def __len__(self):
-        return self.dataset.num_rows
+        return 2000
 
     def __getitem__(self, idx):
         en = self.dataset[idx]["translation"]["en"]
@@ -73,7 +74,7 @@ class DS(Dataset):
 class TT(pl.LightningModule):
     def __init__(self):
         super().__init__()
-        self.model = Transformer(25000, 25000)
+        self.model = Transformer(25000, 25000).cuda()
 
     def forward(self, src, tgt):
         return self.model(src, tgt)
@@ -87,13 +88,15 @@ class TT(pl.LightningModule):
         tgt_out = tgt[:, 1:]
         out = self.forward(src, tgt_in)
         loss = self.compute_loss(out, tgt_out)
-        print(loss)
+        #print(out)
+        #print(tgt_out)
         self.log("train/loss", loss)
         return loss
 
     def configure_optimizers(self):
-        optimizer = torch.optim.Adam(self.parameters(), lr=3e-4)
-        return optimizer
+        optimizer = torch.optim.Adam(self.parameters(), lr=0.0001, betas=(0.9, 0.98), eps=1e-9)
+        scheduler = ScheduledOptim(optimizer, 1, self.model.d_model, 1000)
+        return [optimizer], [{"scheduler":scheduler, "interval": "step"}]
 
 
 def get_checkpoint_callback(save_path="model", name="model_checkpoint.ckpt"):
@@ -101,7 +104,7 @@ def get_checkpoint_callback(save_path="model", name="model_checkpoint.ckpt"):
     if not os.path.exists(save_path):
         os.mkdir(save_path)
         os.mkdir(saving_path)
-    return ModelCheckpoint(dirpath=saving_path, save_top_k=1, monitor="val/val_loss")
+    return ModelCheckpoint(dirpath=saving_path)
 
 
 def initialize_wandb():
@@ -126,10 +129,10 @@ if __name__ == "__main__":
         accelerator="dp",
         logger=WandbLogger(),
         callbacks=[checkpoint_callback],
-        max_epochs=10,
+        max_epochs=100,
     )
 
     ds = DS()
-    train_dataloader = DataLoader(ds, batch_size=4, shuffle=True, num_workers=os.cpu_count())
+    train_dataloader = DataLoader(ds, batch_size=128, shuffle=True, num_workers=os.cpu_count())
 
     trainer.fit(model, train_dataloader)
