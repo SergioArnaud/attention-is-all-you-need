@@ -24,7 +24,7 @@ class PositionalEncoding(nn.Module):
         positional_encoding[:, 0::2] = np.sin(positional_encoding[:, 0::2])  # dim 2i
         positional_encoding[:, 1::2] = np.cos(positional_encoding[:, 1::2])  # dim 2i+1
 
-        return torch.tensor(positional_encoding).unsqueeze_(0)
+        return torch.tensor(positional_encoding).unsqueeze_(0).cuda()
 
     def forward(self, x):
         return x + self._get_positional_encoding(x.size(1))[:, :x.size(1)]

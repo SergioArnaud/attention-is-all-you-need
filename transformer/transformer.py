@@ -27,7 +27,7 @@ class Transformer(nn.Module):
     ):
 
         super(Transformer, self).__init__()
-
+        self.d_model = d_model
         self.encoder = Encoder(
             num_tokens_src,
             N,
@@ -60,4 +60,4 @@ class Transformer(nn.Module):
         encoder_output = self.encoder(source)
         dec_output = self.decoder(target, encoder_output, mask)
 
-        return F.log_softmax(self.linear(dec_output), dim=-1)
+        return self.linear(dec_output)
