@@ -49,11 +49,11 @@ class Encoder(nn.Module):
             ]
         )
 
-    def forward(self, x):
+    def forward(self, x, mask=None):
         x = self.token_emb(x)
         x = self.positional_enc(x).float()
 
         for layer in self.layers:
-            x = layer(x)
+            x = layer(x, mask=mask)
 
         return x
