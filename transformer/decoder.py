@@ -34,7 +34,6 @@ class DecoderLayer(nn.Module):
         attn = self.encoder_decoder_attention(
             decoder_output, encoder_output, encoder_output
         )
-
         return self.feed_forward(attn)
 
 
@@ -63,7 +62,7 @@ class Decoder(nn.Module):
             ]
         )
 
-    def forward(self, target, encoder_output, self_attn_mask):
+    def forward(self, target, encoder_output, self_attn_mask=None):
 
         target = self.token_emb(target)
         dec_output = self.positional_enc(target).float()
