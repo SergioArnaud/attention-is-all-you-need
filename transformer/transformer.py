@@ -18,10 +18,10 @@ class Transformer(nn.Module):
         self,
         num_tokens_src,
         num_tokens_tgt,
-        d_word_vec=512,
-        N=6,
-        h=8,
-        d_model=512,
+        d_word_vec=128,
+        N=2,
+        h=2,
+        d_model=128,
         attn_dropout=0.1,
         feed_forward_dropout=0.1,
     ):
@@ -54,10 +54,16 @@ class Transformer(nn.Module):
             if p.dim() > 1:
                 nn.init.xavier_uniform(p)
 
-    def forward(self, source, target):
+    def forward(self, source, target, pad=0, subsequent_mask=True):
+        
+        src_mask = (source != pad).unsqueeze(-2)
+        
+        tgt_mask = (target != pad).unsqueeze(-2)
 
-        mask = get_subsequent_mask(target)
-        encoder_output = self.encoder(source)
-        dec_output = self.decoder(target, encoder_output, mask)
+        if subsequent_mask:
+            tgt_mask = tgt_mask & get_subsequent_mask(target)
+
+        encoder_output = self.encoder(source, src_mask)
+        dec_output = self.decoder(target, encoder_output, tgt_mask)
 
         return self.linear(dec_output)
