@@ -1,3 +1,4 @@
+import time
 import torch
 from transformer.transformer import Transformer
 from optimizer import ScheduledOptim
@@ -23,22 +24,18 @@ from torch.utils.data import Dataset, DataLoader
 
 
 class Tok:
-    def __init__(self, dataset, max_length=256, vocab_lenght=25000):
+    def __init__(self, dataset, max_length=512, vocab_lenght=25000):
         self.dataset = dataset
         tokenizer = Tokenizer(models.BPE())
         tokenizer.normalizer = normalizers.NFKC()
         tokenizer.pre_tokenizer = pre_tokenizers.ByteLevel()
         tokenizer.enable_truncation(max_length=max_length)
-        tokenizer.enable_padding(length=max_length)
+        tokenizer.enable_padding(length=max_length, pad_token="<PAD>")
         tokenizer.decoder = decoders.ByteLevel()
-        tokenizer.post_processor = TemplateProcessing(
-            single="<s> $A </s>",
-            special_tokens=[("<s>", 1), ("</s>", 2)],
-        )
         trainer = trainers.BpeTrainer(
             vocab_size=vocab_lenght,
             initial_alphabet=pre_tokenizers.ByteLevel.alphabet(),
-            special_tokens=["<PAD>", "<BOS>", "<EOS>"],
+            special_tokens=["<PAD>", "<BOS>", "<EOS>"]
         )
 
         tokenizer.train_from_iterator(
@@ -46,10 +43,14 @@ class Tok:
         )
         self.tokenizer = tokenizer
 
+        if not os.path.exists("tokenizer"):
+            os.mkdir("tokenizer")
+        self.tokenizer.save("tokenizer/tokenizer_11.m")
+
     def batch_iterator(self, batch_size=1000):
         for i in range(0, len(self.dataset), batch_size):
-            yield [k["en"] for k in self.dataset[i : i + batch_size]["translation"]]
-            yield [k["es"] for k in self.dataset[i : i + batch_size]["translation"]]
+            yield ['<BOS>' + k["en"] + '<EOS>' for k in self.dataset[i : i + batch_size]["translation"]]
+            yield ['<BOS>' + k["en"] + '<EOS>' for k in self.dataset[i : i + batch_size]["translation"]]
 
 
 class DS(Dataset):
@@ -59,7 +60,8 @@ class DS(Dataset):
         self.tokenizer = Tok(self.dataset).tokenizer
 
     def __len__(self):
-        return 2000
+        # return self.dataset.num_rows
+        return 1000
 
     def __getitem__(self, idx):
         en = self.dataset[idx]["translation"]["en"]
@@ -75,6 +77,7 @@ class TT(pl.LightningModule):
     def __init__(self):
         super().__init__()
         self.model = Transformer(25000, 25000).cuda()
+        self.step = 0
 
     def forward(self, src, tgt):
         return self.model(src, tgt)
@@ -88,18 +91,20 @@ class TT(pl.LightningModule):
         tgt_out = tgt[:, 1:]
         out = self.forward(src, tgt_in)
         loss = self.compute_loss(out, tgt_out)
-        #print(out)
-        #print(tgt_out)
         self.log("train/loss", loss)
+        self.step += 1
+
         return loss
 
     def configure_optimizers(self):
-        optimizer = torch.optim.Adam(self.parameters(), lr=0.0001, betas=(0.9, 0.98), eps=1e-9)
-        scheduler = ScheduledOptim(optimizer, 1, self.model.d_model, 1000)
-        return [optimizer], [{"scheduler":scheduler, "interval": "step"}]
+        optimizer = torch.optim.Adam(
+            self.parameters(), lr=0.0001, betas=(0.9, 0.98), eps=1e-9
+        )
+        scheduler = ScheduledOptim(optimizer, 1, self.model.d_model, 4000)
+        return [optimizer], [{"scheduler": scheduler, "interval": "step"}]
 
 
-def get_checkpoint_callback(save_path="model", name="model_checkpoint.ckpt"):
+def get_checkpoint_callback(save_path="model", name="model_checkpoint_11"):
     saving_path = os.path.join(save_path, name)
     if not os.path.exists(save_path):
         os.mkdir(save_path)
@@ -133,6 +138,8 @@ if __name__ == "__main__":
     )
 
     ds = DS()
-    train_dataloader = DataLoader(ds, batch_size=128, shuffle=True, num_workers=os.cpu_count())
+    train_dataloader = DataLoader(
+        ds, batch_size=32, shuffle=True, num_workers=os.cpu_count()
+    )
 
     trainer.fit(model, train_dataloader)
