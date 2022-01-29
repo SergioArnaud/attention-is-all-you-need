@@ -43,13 +43,13 @@ class PositionwiseFeedForward(nn.Module):
 class Residual(nn.Module):
     def __init__(self, sublayer, d_model):
         super(Residual, self).__init__()
-        self.layer_normalization = nn.LayerNorm(d_model)
+        self.layer_normalization = nn.LayerNorm(d_model, eps = 1e-6)
         self.current_sublayer = sublayer
 
     def forward(self, *x, mask=None):
         if mask is None:
-            return self.layer_normalization(x[-1] + self.current_sublayer(*x))
+            return self.layer_normalization(x[0] + self.current_sublayer(*x))
         else:
             return self.layer_normalization(
-                x[-1] + self.current_sublayer(*x, mask=mask)
+                x[0] + self.current_sublayer(*x, mask=mask)
             )
